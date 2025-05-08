@@ -7,11 +7,11 @@ export interface InstructionGuide {
   machineModel: string;
   summary: string;
   imageUrl?: string; // Optional image for the card
-  steps: { 
+  steps: {
     title: string;
-    description: string; 
-    image?: string; 
-    videoUrl?: string 
+    description: string;
+    image?: string;
+    videoUrl?: string
   }[];
   tools?: string[];
   safetyAlerts?: string[];
@@ -45,3 +45,24 @@ export interface CoffeeMachine {
   brand: string;
   model: string;
 }
+
+export enum UserRole {
+  NORMAL = "Normal",
+  ADMIN = "Admin",
+  SERVICE = "Service",
+}
+
+export interface User {
+  id: string;
+  email: string;
+  role: UserRole;
+  name?: string;
+  createdAt?: Date;
+}
+
+// Mock user data (in a real app, this would come from a database)
+export const MOCK_USERS: User[] = [
+  { id: 'user-norm1', email: 'normal@example.com', role: UserRole.NORMAL, name: 'Normal User', createdAt: new Date() },
+  { id: 'user-admin1', email: 'admin@example.com', role: UserRole.ADMIN, name: 'Admin User', createdAt: new Date() },
+  { id: 'user-serv1', email: 'service@example.com', role: UserRole.SERVICE, name: 'Service User', createdAt: new Date() },
+];
