@@ -8,7 +8,7 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'genkit/zod'; // Using genkit's zod for schema definitions
+import { z } from 'zod'; // Using genkit's zod for schema definitions
 import { INSTRUCTION_GUIDES } from '@/lib/data'; // Assuming this path is correct and INSTRUCTION_GUIDES is typed
 import type { InstructionGuide } from '@/types'; // For typing INSTRUCTION_GUIDES
 
@@ -157,3 +157,4 @@ const advancedTroubleshootFlowDefinition = ai.defineFlow(
 export async function advancedTroubleshootFlow(input: AdvancedTroubleshootInput): Promise<AdvancedTroubleshootOutput> {
   return advancedTroubleshootFlowDefinition(input);
 }
+
