@@ -1,8 +1,7 @@
 // src/app/service/(routes)/users/page.tsx
 "use client";
 
-import type { useState, ChangeEvent } from 'react';
-import { useMemo } from 'react';
+import { useState, useMemo, type ChangeEvent, type HTMLAttributes, type AriaAttributes, type DOMAttributes } from 'react';
 import PageHeader from '@/components/shared/page-header';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, Edit3, Trash2, Search } from 'lucide-react';
@@ -23,12 +22,14 @@ import UserForm from './components/user-form';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { format } from 'date-fns';
+import { Card } from '@/components/ui/card';
+
 
 export default function AdminUsersPage() {
-  const [users, setUsers] = React.useState<User[]>(INITIAL_USERS);
-  const [searchTerm, setSearchTerm] = React.useState('');
-  const [isFormOpen, setIsFormOpen] = React.useState(false);
-  const [editingUser, setEditingUser] = React.useState<User | null>(null);
+  const [users, setUsers] = useState<User[]>(INITIAL_USERS);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
   const { toast } = useToast();
 
   const filteredUsers = useMemo(() => {

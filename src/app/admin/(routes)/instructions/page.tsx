@@ -1,8 +1,7 @@
 // src/app/admin/(routes)/instructions/page.tsx
 "use client";
 
-import type { useState, ChangeEvent } from 'react';
-import { useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, type ChangeEvent } from 'react';
 import PageHeader from '@/components/shared/page-header';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, Edit3, Trash2, Search } from 'lucide-react';
@@ -12,26 +11,21 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogFooter,
-  DialogClose,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import type { InstructionGuide } from '@/types';
-import { INSTRUCTION_GUIDES as INITIAL_GUIDES, COFFEE_MACHINES } from '@/lib/data'; // Using static data for now
+import { INSTRUCTION_GUIDES as INITIAL_GUIDES } from '@/lib/data'; // Using static data for now
 import InstructionGuideForm from './components/instruction-guide-form';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 
 export default function AdminInstructionsPage() {
-  const [guides, setGuides] = React.useState<InstructionGuide[]>(INITIAL_GUIDES);
-  const [searchTerm, setSearchTerm] = React.useState('');
-  const [isFormOpen, setIsFormOpen] = React.useState(false);
-  const [editingGuide, setEditingGuide] = React.useState<InstructionGuide | null>(null);
+  const [guides, setGuides] = useState<InstructionGuide[]>(INITIAL_GUIDES);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingGuide, setEditingGuide] = useState<InstructionGuide | null>(null);
   const { toast } = useToast();
 
   const filteredGuides = useMemo(() => {
