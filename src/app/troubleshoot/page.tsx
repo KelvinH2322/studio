@@ -6,16 +6,18 @@ import type { TroubleshootStep, TroubleshootQuestion, TroubleshootSolution, Coff
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ChevronLeft, MessageSquare, Settings2, ExternalLink, Info, Search, AlertTriangle } from 'lucide-react';
+import { ChevronLeft, MessageSquare, Settings2, ExternalLink, Info, Search, AlertTriangle, BrainCircuit, ListChecks } from 'lucide-react';
 import Link from 'next/link';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
-
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import AdvancedTroubleshootChat from './components/advanced-troubleshoot-chat';
 
 export default function TroubleshootPage() {
   const [currentStepId, setCurrentStepId] = useState<string>('symptom-start');
   const [history, setHistory] = useState<string[]>([]);
   const [selectedMachine, setSelectedMachine] = useState<CoffeeMachine | null>(null);
+  const [mode, setMode] = useState<'normal' | 'advanced'>('normal');
   const { toast } = useToast();
 
   const currentStep = TROUBLESHOOT_DATA.find(step => step.id === currentStepId) as TroubleshootStep | undefined;
@@ -33,24 +35,51 @@ export default function TroubleshootPage() {
     }
   };
 
-  const handleRestart = () => {
+  const handleRestartNormalMode = () => {
     setCurrentStepId('symptom-start');
     setHistory([]);
-    // setSelectedMachine(null); // Optionally reset machine selection
+    // setSelectedMachine(null); // Optionally reset machine selection on full restart
     toast({
-        title: "Troubleshooting Restarted",
-        description: "You are back at the beginning. Please select your symptom.",
-        variant: "default",
+      title: "Troubleshooting Restarted",
+      description: "You are back at the beginning. Please select your symptom.",
+      variant: "default",
     });
   };
+  
+  const handleRestart = () => {
+    if (mode === 'normal') {
+      handleRestartNormalMode();
+    } else {
+      // For advanced mode, restart might mean clearing chat, handled in that component
+      // Or we can provide a button within the chat component itself.
+      // For now, a general toast.
+      toast({
+        title: "Advanced Chat",
+        description: "To start a new conversation, you can clear current messages or refresh.",
+      });
+    }
+     // Optionally reset machine for both modes
+    // setSelectedMachine(null); // If uncommented, will reset machine for both modes
+  };
+
 
   const handleMachineSelect = (machineId: string) => {
-    const machine = COFFEE_MACHINES.find(m => m.id === machineId);
-    setSelectedMachine(machine || null);
-    toast({
-        title: "Machine Selected",
-        description: `${machine?.brand} ${machine?.model} selected. This may help tailor suggestions.`,
-    });
+    if (machineId === "skip-selection") {
+        setSelectedMachine(null); // Explicitly set to null if skipped
+        toast({
+            title: "Machine Selection Skipped",
+            description: "Proceeding with general troubleshooting.",
+        });
+    } else {
+        const machine = COFFEE_MACHINES.find(m => m.id === machineId);
+        setSelectedMachine(machine || null);
+        if (machine) {
+            toast({
+                title: "Machine Selected",
+                description: `${machine.brand} ${machine.model} selected. This may help tailor suggestions.`,
+            });
+        }
+    }
   };
 
   const getRelevantGuide = useCallback((guideId?: string): InstructionGuide | undefined => {
@@ -58,49 +87,56 @@ export default function TroubleshootPage() {
     let guide = INSTRUCTION_GUIDES.find(g => g.id === guideId);
     
     // If a machine is selected and the specific guide doesn't match, try to find a generic one for the brand or category
-    if (selectedMachine && guide && (guide.machineBrand !== selectedMachine.brand || guide.machineModel !== selectedMachine.model)) {
-      // Try to find a guide for the same brand & category, but generic model
-      const brandCategoryGuide = INSTRUCTION_GUIDES.find(g => 
+    if (selectedMachine && selectedMachine.id !== 'skip-selection' && guide && (guide.machineBrand !== selectedMachine.brand || guide.machineModel !== selectedMachine.model)) {
+      // Try to find a guide for the same brand & category, prioritizing specific model, then generic model for the brand
+      const brandModelSpecificGuide = INSTRUCTION_GUIDES.find(g => 
         g.machineBrand === selectedMachine.brand && 
-        g.category === guide?.category && 
-        (g.machineModel === 'Generic' || g.machineModel === selectedMachine.model) // Prioritize specific model, then generic
+        g.machineModel === selectedMachine.model &&
+        g.category === guide?.category
       );
-      if (brandCategoryGuide) guide = brandCategoryGuide;
-      else {
-        // Try to find a generic guide for the same category
-        const genericCategoryGuide = INSTRUCTION_GUIDES.find(g => 
-          g.machineBrand === 'Generic' && 
-          g.category === guide?.category
-        );
-        if (genericCategoryGuide) guide = genericCategoryGuide;
-      }
+      if (brandModelSpecificGuide) return brandModelSpecificGuide;
+      
+      const brandGenericGuide = INSTRUCTION_GUIDES.find(g => 
+        g.machineBrand === selectedMachine.brand && 
+        g.machineModel === 'Generic' &&
+        g.category === guide?.category
+      );
+      if (brandGenericGuide) return brandGenericGuide;
+      
+      // If still no match, try a completely generic guide for the same category
+      const genericCategoryGuide = INSTRUCTION_GUIDES.find(g => 
+        g.machineBrand === 'Generic' && 
+        g.machineModel === 'Generic' && // Or just Espresso Pro if that's your generic model.
+        g.category === guide?.category
+      );
+      if (genericCategoryGuide) return genericCategoryGuide;
     }
-    return guide;
+    return guide; // Return original guide if no better match or no machine selected
   }, [selectedMachine]);
 
 
-  if (!currentStep) {
-    return (
-      <div className="container mx-auto py-8 text-center">
-        <Alert variant="destructive">
-          <Info className="h-4 w-4" />
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription>
-            Troubleshooting step not found. Please restart.
-          </AlertDescription>
-        </Alert>
-        <Button onClick={handleRestart} className="mt-4">Restart Troubleshooting</Button>
-      </div>
-    );
-  }
+  const renderNormalMode = () => {
+    if (!currentStep) {
+      return (
+        <div className="container mx-auto py-8 text-center">
+          <Alert variant="destructive">
+            <Info className="h-4 w-4" />
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>
+              Troubleshooting step not found. Please restart.
+            </AlertDescription>
+          </Alert>
+          <Button onClick={handleRestartNormalMode} className="mt-4">Restart Troubleshooting</Button>
+        </div>
+      );
+    }
 
-  return (
-    <div className="container mx-auto py-8 flex flex-col items-center">
-      <Card className="w-full max-w-2xl shadow-xl">
+    return (
+      <>
         <CardHeader className="bg-secondary/30 dark:bg-secondary/50 p-6 rounded-t-lg">
           <div className="flex items-center justify-between">
             <CardTitle className="text-2xl font-bold text-primary flex items-center">
-              <Settings2 className="mr-3 h-7 w-7" /> Troubleshooting Assistant
+              <Settings2 className="mr-3 h-7 w-7" /> Normal Troubleshooter
             </CardTitle>
             {history.length > 0 && (
               <Button variant="ghost" size="sm" onClick={handleBack} className="text-sm">
@@ -109,43 +145,11 @@ export default function TroubleshootPage() {
             )}
           </div>
           <CardDescription className="mt-1">
-            Let&apos;s diagnose the issue with your coffee machine.
+            Follow the steps to diagnose the issue.
           </CardDescription>
         </CardHeader>
-
         <CardContent className="p-6 space-y-6">
-          {!selectedMachine ? (
-            <div className="space-y-3 p-4 border rounded-lg bg-background shadow">
-              <h3 className="text-lg font-semibold text-foreground">First, select your coffee machine (optional):</h3>
-              <p className="text-sm text-muted-foreground">This helps us provide more relevant suggestions.</p>
-              <Select onValueChange={handleMachineSelect}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select your machine model" />
-                </SelectTrigger>
-                <SelectContent>
-                  {COFFEE_MACHINES.map(machine => (
-                    <SelectItem key={machine.id} value={machine.id}>
-                      {machine.brand} - {machine.model}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button variant="link" onClick={() => setSelectedMachine({id: 'skip', brand: 'Skip', model: 'Selection'})} className="text-sm p-0 h-auto">
-                Skip machine selection for now
-              </Button>
-            </div>
-          ) : (
-             <div className="p-3 border rounded-lg bg-secondary/20 dark:bg-secondary/40 text-sm">
-              <p className="font-medium text-foreground">
-                Selected Machine: <span className="font-bold">{selectedMachine.brand} {selectedMachine.model}</span>
-              </p>
-              <Button variant="link" onClick={() => setSelectedMachine(null)} className="text-xs p-0 h-auto text-accent hover:text-accent/80">
-                Change machine
-              </Button>
-            </div>
-          )}
-
-          <div className="p-6 border rounded-lg bg-background shadow-inner">
+           <div className="p-6 border rounded-lg bg-background shadow-inner">
             <p className="text-lg font-semibold mb-4 text-foreground flex items-center">
               <MessageSquare className="mr-2 h-5 w-5 text-primary" /> {currentStep.text || (currentStep as TroubleshootSolution).title}
             </p>
@@ -188,14 +192,91 @@ export default function TroubleshootPage() {
             )}
           </div>
         </CardContent>
-
         <CardFooter className="p-6 border-t">
-          <Button onClick={handleRestart} variant="outline" className="w-full">
-            Restart Troubleshooting
+          <Button onClick={handleRestartNormalMode} variant="outline" className="w-full">
+            Restart Normal Mode
           </Button>
         </CardFooter>
-      </Card>
+      </>
+    );
+  };
+  
+  const renderAdvancedMode = () => (
+    <>
+      <CardHeader className="bg-secondary/30 dark:bg-secondary/50 p-6 rounded-t-lg">
+         <CardTitle className="text-2xl font-bold text-primary flex items-center">
+            <BrainCircuit className="mr-3 h-7 w-7" /> Advanced AI Assistant
+          </CardTitle>
+        <CardDescription className="mt-1">
+          Describe your issue or upload an image. Our AI will try to help.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="p-0 md:p-2"> {/* Adjusted padding for chat */}
+        <AdvancedTroubleshootChat 
+            selectedMachine={selectedMachine} 
+            allGuides={INSTRUCTION_GUIDES}
+        />
+      </CardContent>
+      {/* Footer could be part of AdvancedTroubleshootChat or removed for more chat space */}
+    </>
+  );
+
+  return (
+    <div className="container mx-auto py-8 flex flex-col items-center">
+      <div className="w-full max-w-2xl mb-6">
+          <Card className="p-4 shadow-md">
+            <CardHeader className="p-2 pb-4">
+                <CardTitle className="text-lg">Select Your Coffee Machine (Optional)</CardTitle>
+                <CardDescription className="text-sm">This helps us provide more relevant suggestions in both modes.</CardDescription>
+            </CardHeader>
+            <CardContent className="p-2">
+                 <Select onValueChange={handleMachineSelect} value={selectedMachine?.id || "skip-selection"}>
+                    <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select your machine model" />
+                    </SelectTrigger>
+                    <SelectContent>
+                    <SelectItem value="skip-selection">Skip / Not listed</SelectItem>
+                    {COFFEE_MACHINES.map(machine => (
+                        <SelectItem key={machine.id} value={machine.id}>
+                        {machine.brand} - {machine.model}
+                        </SelectItem>
+                    ))}
+                    </SelectContent>
+                </Select>
+            </CardContent>
+           {selectedMachine && selectedMachine.id !== 'skip-selection' && (
+             <CardFooter className="p-2 pt-2">
+                <p className="text-xs text-muted-foreground">
+                    Selected: {selectedMachine.brand} {selectedMachine.model}
+                </p>
+             </CardFooter>
+           )}
+          </Card>
+      </div>
+
+      <Tabs value={mode} onValueChange={(value) => setMode(value as 'normal' | 'advanced')} className="w-full max-w-2xl">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="normal" className="gap-2">
+            <ListChecks className="h-4 w-4"/> Normal Mode
+            </TabsTrigger>
+          <TabsTrigger value="advanced" className="gap-2">
+            <BrainCircuit className="h-4 w-4"/> Advanced AI Chat
+            </TabsTrigger>
+        </TabsList>
+        <TabsContent value="normal">
+          <Card className="w-full shadow-xl">
+            {renderNormalMode()}
+          </Card>
+        </TabsContent>
+        <TabsContent value="advanced">
+          <Card className="w-full shadow-xl">
+            {renderAdvancedMode()}
+          </Card>
+        </TabsContent>
+      </Tabs>
+       <Button onClick={handleRestart} variant="link" className="mt-6 text-sm text-muted-foreground">
+        Start Over / Reset Selection
+      </Button>
     </div>
   );
 }
-
