@@ -1,11 +1,12 @@
 // src/lib/data.ts
 import type { InstructionGuide, TroubleshootStep, CoffeeMachine } from '@/types';
+import { MonitoredCoffeeMachine, MachineConnectionStatus, MachinePowerStatus, MachineComponentStatus, WaterLevelStatus } from '@/types';
 
 export const COFFEE_MACHINES: CoffeeMachine[] = [
-  { id: 'machine-001', brand: 'Breville', model: 'Barista Express' },
-  { id: 'machine-002', brand: 'DeLonghi', model: 'Magnifica' },
-  { id: 'machine-003', brand: 'Gaggia', model: 'Classic Pro' },
-  { id: 'machine-004', brand: 'Generic', model: 'Espresso Pro' },
+  { id: 'machine-001', brand: 'Breville', model: 'Barista Express', imageUrl: 'https://picsum.photos/seed/breville-menu/200/150' },
+  { id: 'machine-002', brand: 'DeLonghi', model: 'Magnifica', imageUrl: 'https://picsum.photos/seed/delonghi-menu/200/150' },
+  { id: 'machine-003', brand: 'Gaggia', model: 'Classic Pro', imageUrl: 'https://picsum.photos/seed/gaggia-menu/200/150' },
+  { id: 'machine-004', brand: 'Generic', model: 'Espresso Pro', imageUrl: 'https://picsum.photos/seed/generic-menu/200/150' },
 ];
 
 export const INSTRUCTION_GUIDES: InstructionGuide[] = [
@@ -61,7 +62,7 @@ export const INSTRUCTION_GUIDES: InstructionGuide[] = [
     title: 'Basic Espresso Machine Maintenance',
     category: 'Maintenance',
     machineBrand: 'Generic',
-    machineModel: 'Espresso Pro',
+    machineModel: 'Espresso Pro', // Corrected to match one of the models in COFFEE_MACHINES
     summary: 'General maintenance tips applicable to most espresso machines.',
     imageUrl: 'https://picsum.photos/seed/guide4/400/300',
     steps: [
@@ -101,6 +102,20 @@ export const TROUBLESHOOT_DATA: TroubleshootStep[] = [
     title: 'Leaking Group Head',
     description: 'A leaking group head is often due to a worn-out group head gasket. Consider replacing it. You can find general instructions for gasket replacement in many maintenance guides.',
     guideId: 'guide-003', // Example link, ideally a specific gasket guide
+  },
+  {
+    id: 'sol-leak-steamwand', // Added missing solution based on option
+    type: 'solution',
+    title: 'Leaking Steam Wand',
+    description: 'A leaking steam wand could be due to a worn-out O-ring or valve. Check for mineral buildup and clean. If leaking persists, parts may need replacement.',
+    guideId: 'guide-001', // Could be relevant for cleaning
+  },
+  {
+    id: 'sol-leak-underneath', // Added missing solution based on option
+    type: 'solution',
+    title: 'Leaking Underneath',
+    description: 'Leaks underneath can be serious, potentially from a cracked hose, loose fitting, or faulty internal component. Unplug the machine and inspect carefully. May require professional help.',
+    professionalHelp: true,
   },
   {
     id: 'q-no-coffee-water',
@@ -143,6 +158,20 @@ export const TROUBLESHOOT_DATA: TroubleshootStep[] = [
     description: 'Bitter coffee can be due to over-extraction (grind too fine, brew time too long), water too hot, or stale/over-roasted beans. Also, ensure your machine is clean.',
     guideId: 'guide-001',
   },
+   {
+    id: 'sol-bad-taste-sour', // Added missing solution based on option
+    type: 'solution',
+    title: 'Sour or Acidic Coffee',
+    description: 'Sour coffee often indicates under-extraction (grind too coarse, brew time too short), or water temperature too low. Also, ensure your machine is clean and descaled.',
+    guideId: 'guide-001', // Cleaning guide
+  },
+  {
+    id: 'sol-bad-taste-stale', // Added missing solution based on option
+    type: 'solution',
+    title: 'Metallic or Stale Coffee',
+    description: 'This could be due to stale beans, an unclean machine, or old water in the reservoir. Ensure you use fresh beans, clean your machine regularly, and use fresh water.',
+    guideId: 'guide-001', // Cleaning guide
+  },
   {
     id: 'sol-power-check',
     type: 'solution',
@@ -151,4 +180,68 @@ export const TROUBLESHOOT_DATA: TroubleshootStep[] = [
     professionalHelp: true,
   },
   // Add more symptoms, questions, and solutions
+];
+
+
+export const MOCK_MONITORED_MACHINES: MonitoredCoffeeMachine[] = [
+  {
+    id: 'machine-001',
+    brand: 'Breville',
+    model: 'Barista Express',
+    imageUrl: 'https://picsum.photos/seed/breville-iot/300/200',
+    connectionStatus: MachineConnectionStatus.CONNECTED,
+    powerStatus: MachinePowerStatus.ON,
+    pumpStatus: MachineComponentStatus.OPERATING,
+    heaterStatus: MachineComponentStatus.ON,
+    grinderStatus: MachineComponentStatus.OK,
+    waterLevel: WaterLevelStatus.FULL,
+    onTimeSecondsToday: 7200, // 2 hours
+    cupsMadeToday: 5,
+    lastSync: new Date(Date.now() - 5 * 60 * 1000), // 5 minutes ago
+  },
+  {
+    id: 'machine-002',
+    brand: 'DeLonghi',
+    model: 'Magnifica',
+    imageUrl: 'https://picsum.photos/seed/delonghi-iot/300/200',
+    connectionStatus: MachineConnectionStatus.CONNECTED,
+    powerStatus: MachinePowerStatus.OFF,
+    pumpStatus: MachineComponentStatus.OK,
+    heaterStatus: MachineComponentStatus.OFF,
+    grinderStatus: MachineComponentStatus.OK,
+    waterLevel: WaterLevelStatus.MEDIUM,
+    onTimeSecondsToday: 3600, // 1 hour
+    cupsMadeToday: 2,
+    lastSync: new Date(Date.now() - 2 * 60 * 1000), // 2 minutes ago
+  },
+  {
+    id: 'machine-003',
+    brand: 'Gaggia',
+    model: 'Classic Pro',
+    imageUrl: 'https://picsum.photos/seed/gaggia-iot/300/200',
+    connectionStatus: MachineConnectionStatus.DISCONNECTED,
+    powerStatus: MachinePowerStatus.ERROR, 
+    pumpStatus: MachineComponentStatus.ERROR,
+    heaterStatus: MachineComponentStatus.ERROR,
+    grinderStatus: MachineComponentStatus.ERROR,
+    waterLevel: WaterLevelStatus.EMPTY,
+    onTimeSecondsToday: 10800, 
+    cupsMadeToday: 10,
+    lastSync: new Date(Date.now() - 60 * 60 * 1000), 
+  },
+  {
+    id: 'machine-004',
+    brand: 'Generic',
+    model: 'Espresso Pro',
+    imageUrl: 'https://picsum.photos/seed/genericmachine-iot/300/200', // Unique seed for image
+    connectionStatus: MachineConnectionStatus.CONNECTED,
+    powerStatus: MachinePowerStatus.ON,
+    pumpStatus: MachineComponentStatus.NEEDS_ATTENTION,
+    heaterStatus: MachineComponentStatus.ON,
+    grinderStatus: MachineComponentStatus.OK,
+    waterLevel: WaterLevelStatus.LOW,
+    onTimeSecondsToday: 1800, 
+    cupsMadeToday: 1,
+    lastSync: new Date(Date.now() - 10 * 60 * 1000), 
+  },
 ];
