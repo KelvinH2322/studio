@@ -1,4 +1,5 @@
 // src/app/iot-monitor/[machineId]/page.tsx
+import React from 'react';
 import { MOCK_MONITORED_MACHINES } from '@/lib/data';
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
