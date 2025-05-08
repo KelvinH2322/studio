@@ -110,8 +110,8 @@ Respond with a JSON object matching the output schema.
 const advancedTroubleshootFlowDefinition = ai.defineFlow(
   {
     name: 'advancedTroubleshootFlow',
-    inputSchema: AdvancedTroubleshootInputSchema, // Uses the internal Zod schema
-    outputSchema: AdvancedTroubleshootOutputSchema, // Uses the internal Zod schema
+    inputSchema: AdvancedTroubleshootInputSchema, 
+    outputSchema: AdvancedTroubleshootOutputSchema,
   },
   async (input: AdvancedTroubleshootInput): Promise<AdvancedTroubleshootOutput> => {
     const formattedGuides = formatGuidesForPrompt(INSTRUCTION_GUIDES as InstructionGuide[]); 
@@ -126,7 +126,8 @@ const advancedTroubleshootFlowDefinition = ai.defineFlow(
         formattedGuidesText: formattedGuides,
     };
     
-    const { output } = await troubleshootPrompt(promptInput, { model: 'googleai/gemini-1.5-flash-latest' });
+    // Removed explicit model override to use the default configured model
+    const { output } = await troubleshootPrompt(promptInput);
 
 
     if (!output) {
