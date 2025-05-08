@@ -113,23 +113,27 @@ export default function AdvancedTroubleshootChat({ selectedMachine, allGuides }:
       newUserMessage.imageUrl = imageDataUriForBackend; // For display
     }
     
-    setMessages(prev => [...prev, newUserMessage]);
+    // Add user message to local state immediately for responsiveness
+    const updatedMessages = [...messages, newUserMessage];
+    setMessages(updatedMessages);
     
     const assistantMessageId = `assistant-${Date.now()}`;
     setMessages(prev => [...prev, { id: assistantMessageId, role: 'assistant', isLoading: true }]);
     setIsAssistantLoading(true);
 
     const currentInputText = inputText.trim();
+    // Clear input fields after capturing their values
     setInputText('');
-    removeImage(); // Clear image and file object after processing for send
+    removeImage(); 
 
     try {
-      const chatHistoryForFlow = messages
-        // Filter out the pending assistant message and the current user message which is passed separately
-        .filter(msg => msg.id !== assistantMessageId && msg.id !== userMessageId) 
+      // Construct chat history from the state *before* adding the current assistant placeholder
+      const chatHistoryForFlow = updatedMessages 
+        .filter(msg => msg.id !== userMessageId) // Exclude current user message as it's passed separately
         .map(msg => ({
             role: msg.role, 
-            text: msg.text || (msg.imageUrl ? "[Image was sent by user]" : "[Assistant message without text]"),
+            // Ensure text property exists, even if empty for image-only messages (though UI prevents this)
+            text: msg.text || (msg.imageUrl && msg.role === 'user' ? "[User sent an image]" : "[Message content unavailable]"),
       }));
       
       const flowInput: AdvancedTroubleshootInput = {
@@ -141,27 +145,31 @@ export default function AdvancedTroubleshootChat({ selectedMachine, allGuides }:
 
       const result: AdvancedTroubleshootOutput = await advancedTroubleshootFlow(flowInput);
       
-      const suggestedGuides = result.suggestedGuideIds?.map(id => {
+      const suggestedGuidesData = result.suggestedGuideIds?.map(id => {
         const guide = allGuides.find(g => g.id === id);
         return guide ? { id: guide.id, title: guide.title } : null;
       }).filter(Boolean) as { id: string, title: string }[] | undefined;
 
       setMessages(prev => prev.map(msg => 
         msg.id === assistantMessageId 
-        ? { ...msg, text: result.assistantResponse, suggestedGuides, isLoading: false } 
+        ? { ...msg, text: result.assistantResponse, suggestedGuides: suggestedGuidesData, isLoading: false } 
         : msg
       ));
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error calling advanced troubleshoot flow:', error);
+      let errorMessage = 'Failed to get response from AI assistant. Please try again.';
+      if (error.message) {
+        errorMessage = error.message;
+      }
       toast({
         title: 'Error',
-        description: 'Failed to get response from AI assistant. Please try again.',
+        description: errorMessage,
         variant: 'destructive',
       });
       setMessages(prev => prev.map(msg => 
         msg.id === assistantMessageId 
-        ? { ...msg, text: "Sorry, I encountered an error. Please try again.", isLoading: false, role: 'assistant' } 
+        ? { ...msg, text: "Sorry, I encountered an error. Please try again. Details: " + errorMessage, isLoading: false, role: 'assistant' } 
         : msg
       ));
     } finally {
@@ -203,8 +211,8 @@ export default function AdvancedTroubleshootChat({ selectedMachine, allGuides }:
                         </div>
                     )}
                     {msg.suggestedGuides && msg.suggestedGuides.length > 0 && (
-                        <div className="mt-3 pt-2 border-t border-gray-500/30">
-                            <p className="text-xs font-semibold mb-1">Suggested Guides:</p>
+                        <div className="mt-3 pt-2 border-t border-border/50 dark:border-border/20">
+                            <p className={`text-xs font-semibold mb-1 ${msg.role === 'user' ? 'text-primary-foreground/90' : 'text-card-foreground/90'}`}>Suggested Guides:</p>
                             <ul className="space-y-1">
                                 {msg.suggestedGuides.map(guide => (
                                 <li key={guide.id}>
@@ -236,7 +244,7 @@ export default function AdvancedTroubleshootChat({ selectedMachine, allGuides }:
             <div className="flex items-center gap-2 overflow-hidden">
                 <ImageIcon className="h-5 w-5 text-muted-foreground flex-shrink-0" />
                 {inputImageFile && <span className="text-xs text-muted-foreground truncate">{inputImageFile.name}</span>}
-                 <Image src={previewImageUrl} alt="Preview" width={32} height={32} className="rounded object-cover flex-shrink-0 border" />
+                 <Image src={previewImageUrl} alt="Preview" width={32} height={32} className="rounded object-cover flex-shrink-0 border" data-ai-hint="image preview" />
             </div>
             <Button variant="ghost" size="icon" onClick={removeImage} className="h-7 w-7 flex-shrink-0">
                 <XCircle className="h-4 w-4" />
