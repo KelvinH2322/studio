@@ -6,7 +6,7 @@ import type { TroubleshootStep, TroubleshootQuestion, TroubleshootSolution, Coff
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ChevronLeft, MessageSquare, Settings2, ExternalLink, Info, Search } from 'lucide-react';
+import { ChevronLeft, MessageSquare, Settings2, ExternalLink, Info, Search, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
@@ -198,3 +198,4 @@ export default function TroubleshootPage() {
     </div>
   );
 }
+
