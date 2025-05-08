@@ -2,7 +2,7 @@ import { INSTRUCTION_GUIDES } from '@/lib/data';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { AlertTriangle, CheckCircle, FileText, ListChecks, Tool, Youtube } from 'lucide-react';
+import { AlertTriangle, CheckCircle, FileText, ListChecks, PenToolIcon, Youtube } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -82,7 +82,7 @@ export default function InstructionGuidePage({ params }: GuidePageProps) {
           {guide.tools && guide.tools.length > 0 && (
             <div className="mb-6">
               <h3 className="text-xl font-semibold mb-2 flex items-center text-primary">
-                <Tool className="mr-2 h-5 w-5" /> Tools Required
+                <PenToolIcon className="mr-2 h-5 w-5" /> Tools Required
               </h3>
               <div className="flex flex-wrap gap-2">
                 {guide.tools.map((tool, index) => (
