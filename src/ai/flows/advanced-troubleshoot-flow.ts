@@ -8,12 +8,12 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'zod'; // Using genkit's zod for schema definitions
-import { INSTRUCTION_GUIDES } from '@/lib/data'; // Assuming this path is correct and INSTRUCTION_GUIDES is typed
-import type { InstructionGuide } from '@/types'; // For typing INSTRUCTION_GUIDES
+import { z } from 'zod'; 
+import { INSTRUCTION_GUIDES } from '@/lib/data'; 
+import type { InstructionGuide } from '@/types'; 
 
-// Client-facing input schema
-export const AdvancedTroubleshootInputSchema = z.object({
+// Zod schema for client-facing input, NOT exported
+const AdvancedTroubleshootInputSchema = z.object({
   currentMessageText: z.string().optional().describe("The user's current text message."),
   currentImageUri: z.string().optional().describe("A data URI of an image provided by the user for the current turn. Expected format: 'data:<mimetype>;base64,<encoded_data>'."),
   chatHistory: z.array(
@@ -40,7 +40,8 @@ const AdvancedPromptInternalContextSchema = z.object({
 });
 
 
-export const AdvancedTroubleshootOutputSchema = z.object({
+// Zod schema for client-facing output, NOT exported
+const AdvancedTroubleshootOutputSchema = z.object({
   assistantResponse: z.string().describe("The AI assistant's textual response to the user."),
   suggestedGuideIds: z.array(z.string()).optional().describe("An array of IDs for relevant instruction guides. These IDs must exist in the provided list of guides."),
 });
@@ -109,11 +110,11 @@ Respond with a JSON object matching the output schema.
 const advancedTroubleshootFlowDefinition = ai.defineFlow(
   {
     name: 'advancedTroubleshootFlow',
-    inputSchema: AdvancedTroubleshootInputSchema,
-    outputSchema: AdvancedTroubleshootOutputSchema,
+    inputSchema: AdvancedTroubleshootInputSchema, // Uses the internal Zod schema
+    outputSchema: AdvancedTroubleshootOutputSchema, // Uses the internal Zod schema
   },
   async (input: AdvancedTroubleshootInput): Promise<AdvancedTroubleshootOutput> => {
-    const formattedGuides = formatGuidesForPrompt(INSTRUCTION_GUIDES as InstructionGuide[]); // Cast if INSTRUCTION_GUIDES is not strictly typed
+    const formattedGuides = formatGuidesForPrompt(INSTRUCTION_GUIDES as InstructionGuide[]); 
     const formattedHistory = formatChatHistoryForPrompt(input.chatHistory);
     const selectedMachineText = input.selectedMachine ? `${input.selectedMachine.brand} ${input.selectedMachine.model}` : undefined;
 
@@ -125,22 +126,16 @@ const advancedTroubleshootFlowDefinition = ai.defineFlow(
         formattedGuidesText: formattedGuides,
     };
     
-    // Use Gemini Flash as it supports multimodal input (text + image)
-    // If a different model is configured globally in genkit.ts, this explicitly uses flash for this flow.
-    // If your global model in genkit.ts is already gemini-pro or gemini-ultra (or flash), this specific model line can be omitted.
     const { output } = await troubleshootPrompt(promptInput, { model: 'googleai/gemini-1.5-flash-latest' });
 
 
     if (!output) {
-        // Fallback or error handling if prompt returns no output
         return {
             assistantResponse: "I'm sorry, I couldn't process that request. Could you try rephrasing or providing more details?",
             suggestedGuideIds: [],
         };
     }
     
-    // Ensure suggestedGuideIds is always an array, even if empty or undefined from LLM
-    // And filter to ensure IDs are valid from the INSTRUCTION_GUIDES
     const validGuideIds = INSTRUCTION_GUIDES.map(g => g.id);
     const filteredSuggestedGuideIds = Array.isArray(output.suggestedGuideIds) 
         ? output.suggestedGuideIds.filter(id => validGuideIds.includes(id))
@@ -157,4 +152,3 @@ const advancedTroubleshootFlowDefinition = ai.defineFlow(
 export async function advancedTroubleshootFlow(input: AdvancedTroubleshootInput): Promise<AdvancedTroubleshootOutput> {
   return advancedTroubleshootFlowDefinition(input);
 }
-
