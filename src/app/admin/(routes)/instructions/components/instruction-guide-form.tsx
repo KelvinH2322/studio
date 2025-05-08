@@ -8,7 +8,7 @@ import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
+// Label removed as FormLabel is used from form component
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { COFFEE_MACHINES } from '@/lib/data';
@@ -139,7 +139,7 @@ export default function InstructionGuideForm({ guide, onSubmit, onCancel }: Inst
                     <FormControl><SelectTrigger><SelectValue placeholder="Select brand" /></SelectTrigger></FormControl>
                     <SelectContent>
                         {uniqueMachineBrands.map(brand => <SelectItem key={brand} value={brand}>{brand}</SelectItem>)}
-                         <SelectItem value="Generic">Generic (All Brands)</SelectItem>
+                         <SelectItem key="brand-generic" value="Generic">Generic (All Brands)</SelectItem>
                     </SelectContent>
                 </Select>
                 <FormMessage />
@@ -152,15 +152,31 @@ export default function InstructionGuideForm({ guide, onSubmit, onCancel }: Inst
             render={({ field }) => (
                 <FormItem>
                 <FormLabel>Machine Model</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value} disabled={!watchedBrand || availableModels.length === 0 && watchedBrand !== "Generic"}>
+                <Select 
+                    onValueChange={field.onChange} 
+                    value={field.value} 
+                    disabled={!watchedBrand || (availableModels.length === 0 && watchedBrand !== "Generic")}
+                >
                     <FormControl><SelectTrigger><SelectValue placeholder="Select model" /></SelectTrigger></FormControl>
                     <SelectContent>
                         {watchedBrand === "Generic" ? (
-                             <SelectItem value="Generic">Generic (All Models)</SelectItem>
+                            <SelectItem key="model-generic-all-brands" value="Generic">
+                                Generic (Applies to All Models)
+                            </SelectItem>
                         ) : (
-                            availableModels.map(model => <SelectItem key={model} value={model}>{model}</SelectItem>)
+                            <>
+                            {availableModels.map(model => (
+                                <SelectItem key={model} value={model}>
+                                {model}
+                                </SelectItem>
+                            ))}
+                            {watchedBrand && ( // Ensure watchedBrand is present before using in key/text
+                                <SelectItem key={`model-generic-for-${watchedBrand}`} value="Generic">
+                                    Generic (Applies to All Models of {watchedBrand})
+                                </SelectItem>
+                            )}
+                            </>
                         )}
-                         <SelectItem value="Generic">Generic (Selected Brand)</SelectItem>
                     </SelectContent>
                 </Select>
                 <FormMessage />
