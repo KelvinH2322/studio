@@ -19,6 +19,7 @@ import { useToast } from '@/hooks/use-toast';
 import type { TroubleshootStep, TroubleshootQuestion, TroubleshootSolution, InstructionGuide } from '@/types';
 import { TROUBLESHOOT_DATA as INITIAL_STEPS, INSTRUCTION_GUIDES } from '@/lib/data'; // Using static data
 import TroubleshootStepForm from './components/troubleshoot-step-form';
+import SolutionTreeView from './components/solution-tree-view'; // Import the new component
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -71,10 +72,10 @@ export default function AdminTroubleshootingPage() {
       });
       return;
     }
-    if (stepId === 'symptom-start') {
+    if (stepId === 'symptom-start' && steps.length > 1) { // Allow deleting if it's the only step left
       toast({
         title: "Deletion Blocked",
-        description: "The 'symptom-start' step cannot be deleted as it's the entry point.",
+        description: "The 'symptom-start' step cannot be deleted as it's the entry point, unless it's the only step.",
         variant: "destructive",
       });
       return;
@@ -108,71 +109,81 @@ export default function AdminTroubleshootingPage() {
     let issuesFound = 0;
     let messages: string[] = [];
 
-    const stepIds = new Set(steps.map(s => s.id));
+    if (steps.length === 0) {
+        messages.push("Info: No steps to validate.");
+    } else {
+        const stepIds = new Set(steps.map(s => s.id));
 
-    if (!stepIds.has('symptom-start')) {
-      messages.push("Critical: Entry point 'symptom-start' is missing.");
-      issuesFound++;
-    }
-
-    steps.forEach(step => {
-      if (step.type === 'question') {
-        const question = step as TroubleshootQuestion;
-        if (question.options.length === 0) {
-          messages.push(`Warning: Question "${question.id}" has no options defined.`);
-          issuesFound++;
+        if (!stepIds.has('symptom-start')) {
+        messages.push("Critical: Entry point 'symptom-start' is missing.");
+        issuesFound++;
         }
-        question.options.forEach(option => {
-          if (!stepIds.has(option.nextStepId)) {
-            messages.push(`Error: Question "${question.id}", option "${option.text}" points to non-existent step ID "${option.nextStepId}".`);
-            issuesFound++;
-          }
-        });
-      } else if (step.type === 'solution') {
-        const solution = step as TroubleshootSolution;
-        if (solution.guideId && !INSTRUCTION_GUIDES.some(guide => guide.id === solution.guideId)) {
-           messages.push(`Warning: Solution "${solution.id}" points to non-existent guide ID "${solution.guideId}".`);
-           issuesFound++;
-        }
-      }
-    });
-    
-    // Basic reachability check (simplified)
-    const reachable = new Set<string>();
-    const queue: string[] = ['symptom-start'];
-    if (stepIds.has('symptom-start')) reachable.add('symptom-start');
 
-    let head = 0;
-    while(head < queue.length) {
-        const currentId = queue[head++];
-        const current = steps.find(s => s.id === currentId);
-        if (current?.type === 'question') {
-            (current as TroubleshootQuestion).options.forEach(opt => {
-                if (stepIds.has(opt.nextStepId) && !reachable.has(opt.nextStepId)) {
-                    reachable.add(opt.nextStepId);
-                    queue.push(opt.nextStepId);
-                }
+        steps.forEach(step => {
+        if (step.type === 'question') {
+            const question = step as TroubleshootQuestion;
+            if (!question.options || question.options.length === 0) { // Allow empty options during editing
+            messages.push(`Warning: Question "${question.id}" has no options defined.`);
+            // Not incrementing issuesFound for this as it might be mid-edit
+            }
+            question.options?.forEach(option => {
+            if (!stepIds.has(option.nextStepId)) {
+                messages.push(`Error: Question "${question.id}", option "${option.text}" points to non-existent step ID "${option.nextStepId}".`);
+                issuesFound++;
+            }
             });
+        } else if (step.type === 'solution') {
+            const solution = step as TroubleshootSolution;
+            if (solution.guideId && !INSTRUCTION_GUIDES.some(guide => guide.id === solution.guideId)) {
+            messages.push(`Warning: Solution "${solution.id}" points to non-existent guide ID "${solution.guideId}".`);
+            // Not incrementing issuesFound for this
+            }
         }
-    }
+        });
+        
+        // Basic reachability check (simplified)
+        const reachable = new Set<string>();
+        const queue: string[] = [];
+        if (stepIds.has('symptom-start')) {
+            queue.push('symptom-start');
+            reachable.add('symptom-start');
+        }
 
-    steps.forEach(step => {
-        if (!reachable.has(step.id)) {
-            messages.push(`Warning: Step "${step.id}" might be orphaned (not reachable from 'symptom-start').`);
-            // Not incrementing issuesFound for orphans as it might be intentional during editing.
+
+        let head = 0;
+        while(head < queue.length) {
+            const currentId = queue[head++];
+            const current = steps.find(s => s.id === currentId);
+            if (current?.type === 'question') {
+                (current as TroubleshootQuestion).options?.forEach(opt => {
+                    if (stepIds.has(opt.nextStepId) && !reachable.has(opt.nextStepId)) {
+                        reachable.add(opt.nextStepId);
+                        queue.push(opt.nextStepId);
+                    }
+                });
+            }
         }
-    });
+
+        steps.forEach(step => {
+            if (!reachable.has(step.id)) {
+                messages.push(`Warning: Step "${step.id}" might be orphaned (not reachable from 'symptom-start').`);
+            }
+        });
+    }
 
 
     if (issuesFound === 0 && messages.length === 0) {
-      toast({ title: "Tree Validated", description: "No obvious issues found in the troubleshooting tree structure.", className: "bg-green-500 text-white" });
-    } else {
+      toast({ title: "Tree Validated", description: "No issues found in the troubleshooting tree structure.", className: "bg-green-500 text-white" });
+    } else if (issuesFound === 0 && messages.length > 0 && messages[0] === "Info: No steps to validate.") {
+        toast({ title: "Tree Validated", description: "No steps to validate.", className: "bg-blue-500 text-white" });
+    }
+    else {
       toast({
-        title: `Tree Validation: ${issuesFound} Critical Issues / ${messages.length - issuesFound} Warnings`,
+        title: `Tree Validation: ${issuesFound} Critical Issues / ${messages.length - issuesFound} Warnings/Infos`,
         description: (
           <ScrollArea className="h-40">
             <ul className="list-disc pl-5 space-y-1">
-              {messages.map((msg, i) => <li key={i} className={cn(msg.startsWith("Error:") || msg.startsWith("Critical:") ? "text-destructive" : "text-yellow-700", "whitespace-pre-wrap")}>{msg}</li>)}
+              {messages.map((msg, i) => <li key={i} className={cn(msg.startsWith("Error:") || msg.startsWith("Critical:") ? "text-destructive" : (msg.startsWith("Warning:") ? "text-yellow-700 dark:text-yellow-500" : "text-blue-600 dark:text-blue-400"), "whitespace-pre-wrap")}>{msg}</li>)}
             </ul>
           </ScrollArea>
         ),
@@ -247,7 +258,7 @@ export default function AdminTroubleshootingPage() {
                       </Button>
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10" disabled={step.id === 'symptom-start'}>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10" disabled={step.id === 'symptom-start' && steps.length > 1}>
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </AlertDialogTrigger>
@@ -282,19 +293,11 @@ export default function AdminTroubleshootingPage() {
         </TabsContent>
 
         <TabsContent value="solution-trees">
-          <Card>
-            <CardHeader>
-              <CardTitle>Solution Trees</CardTitle>
-              <CardDescription>
-                Visualize and manage complete troubleshooting workflows. This section is under construction.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="min-h-[200px] flex items-center justify-center">
-              <p className="text-muted-foreground">
-                Functionality to define and visualize solution trees will be available here in a future update.
-              </p>
-            </CardContent>
-          </Card>
+          <SolutionTreeView 
+            steps={steps} 
+            guides={INSTRUCTION_GUIDES} 
+            onEditStep={handleEditStep} 
+          />
         </TabsContent>
       </Tabs>
 
