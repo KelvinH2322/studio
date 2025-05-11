@@ -4,7 +4,7 @@
 import { useState, useMemo, type ChangeEvent, useEffect } from 'react';
 import PageHeader from '@/components/shared/page-header';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Edit3, Trash2, Search, AlertTriangleIcon, HelpCircleIcon, CheckCircleIcon } from 'lucide-react';
+import { PlusCircle, Edit3, Trash2, Search, AlertTriangleIcon, HelpCircleIcon, CheckCircleIcon, GitFork, ListTree } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -21,9 +21,10 @@ import { TROUBLESHOOT_DATA as INITIAL_STEPS, INSTRUCTION_GUIDES } from '@/lib/da
 import TroubleshootStepForm from './components/troubleshoot-step-form';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function AdminTroubleshootingPage() {
   const [steps, setSteps] = useState<TroubleshootStep[]>(INITIAL_STEPS);
@@ -191,87 +192,111 @@ export default function AdminTroubleshootingPage() {
         <CheckCircleIcon className="mr-2 h-4 w-4" /> Add Solution
       </Button>
        <Button onClick={validateTree} variant="secondary">
-        Validate Tree
+        Validate Data
       </Button>
     </div>
   );
 
   return (
     <div>
-      <PageHeader title="Manage Troubleshooting Content" description="Create, edit, and link troubleshooting steps." actions={pageActions} />
+      <PageHeader title="Manage Troubleshooting Content" description="Create, edit, and link troubleshooting steps and trees." actions={pageActions} />
 
-      <div className="mb-6">
-        <Input
-          placeholder="Search steps by ID, title, or text..."
-          value={searchTerm}
-          onChange={(e: ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
-          className="max-w-md"
-          // The icon prop is not a standard Input prop. It was removed earlier from the Input component.
-          // If an icon is needed, it should be placed manually next to or within the Input.
-          // For now, I'll remove it to avoid potential errors.
-          // icon={<Search className="h-4 w-4 text-muted-foreground" />} 
-        />
-      </div>
+      <Tabs defaultValue="steps-list" className="w-full">
+        <TabsList className="grid w-full grid-cols-2 mb-6">
+          <TabsTrigger value="steps-list" className="gap-2">
+            <ListTree className="h-4 w-4" /> Steps List
+          </TabsTrigger>
+          <TabsTrigger value="solution-trees" className="gap-2">
+            <GitFork className="h-4 w-4" /> Solution Trees
+          </TabsTrigger>
+        </TabsList>
 
-      <Card>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[200px]">ID</TableHead>
-              <TableHead className="w-[120px]">Type</TableHead>
-              <TableHead>Text / Title</TableHead>
-              <TableHead className="text-right w-[120px]">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredSteps.length > 0 ? filteredSteps.map(step => (
-              <TableRow key={step.id}>
-                <TableCell className="font-mono text-xs">{step.id}</TableCell>
-                <TableCell>
-                  <Badge variant={step.type === 'question' ? 'secondary' : 'default'}>
-                    {step.type === 'question' ? <HelpCircleIcon className="mr-1 h-3 w-3" /> : <CheckCircleIcon className="mr-1 h-3 w-3" />}
-                    {step.type}
-                  </Badge>
-                </TableCell>
-                <TableCell>{step.type === 'question' ? (step as TroubleshootQuestion).text : (step as TroubleshootSolution).title}</TableCell>
-                <TableCell className="text-right space-x-1">
-                  <Button variant="ghost" size="icon" onClick={() => handleEditStep(step)} className="h-8 w-8">
-                    <Edit3 className="h-4 w-4" />
-                  </Button>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10" disabled={step.id === 'symptom-start'}>
-                        <Trash2 className="h-4 w-4" />
+        <TabsContent value="steps-list">
+          <div className="mb-6">
+            <Input
+              placeholder="Search steps by ID, title, or text..."
+              value={searchTerm}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
+              className="max-w-md"
+            />
+          </div>
+          <Card>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[200px]">ID</TableHead>
+                  <TableHead className="w-[120px]">Type</TableHead>
+                  <TableHead>Text / Title</TableHead>
+                  <TableHead className="text-right w-[120px]">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredSteps.length > 0 ? filteredSteps.map(step => (
+                  <TableRow key={step.id}>
+                    <TableCell className="font-mono text-xs">{step.id}</TableCell>
+                    <TableCell>
+                      <Badge variant={step.type === 'question' ? 'secondary' : 'default'}>
+                        {step.type === 'question' ? <HelpCircleIcon className="mr-1 h-3 w-3" /> : <CheckCircleIcon className="mr-1 h-3 w-3" />}
+                        {step.type}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{step.type === 'question' ? (step as TroubleshootQuestion).text : (step as TroubleshootSolution).title}</TableCell>
+                    <TableCell className="text-right space-x-1">
+                      <Button variant="ghost" size="icon" onClick={() => handleEditStep(step)} className="h-8 w-8">
+                        <Edit3 className="h-4 w-4" />
                       </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          This action cannot be undone. This will permanently delete the step "{step.id}".
-                          Dependent steps might be affected.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => handleDeleteStep(step.id)} className="bg-destructive hover:bg-destructive/90">
-                          Delete
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </TableCell>
-              </TableRow>
-            )) : (
-              <TableRow>
-                <TableCell colSpan={4} className="text-center h-24">
-                  No troubleshooting steps found. {searchTerm && "Try adjusting your search."}
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </Card>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10" disabled={step.id === 'symptom-start'}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This action cannot be undone. This will permanently delete the step "{step.id}".
+                              Dependent steps might be affected.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleDeleteStep(step.id)} className="bg-destructive hover:bg-destructive/90">
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </TableCell>
+                  </TableRow>
+                )) : (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center h-24">
+                      No troubleshooting steps found. {searchTerm && "Try adjusting your search."}
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="solution-trees">
+          <Card>
+            <CardHeader>
+              <CardTitle>Solution Trees</CardTitle>
+              <CardDescription>
+                Visualize and manage complete troubleshooting workflows. This section is under construction.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="min-h-[200px] flex items-center justify-center">
+              <p className="text-muted-foreground">
+                Functionality to define and visualize solution trees will be available here in a future update.
+              </p>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
