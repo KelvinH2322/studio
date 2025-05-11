@@ -15,6 +15,8 @@ import { PlusCircle, Trash2 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area'; // Assuming it's in ui
 import { useEffect, useState } from 'react';
 
+const NONE_GUIDE_VALUE = "___NONE___"; // Special value for "None" guide selection
+
 const optionSchema = z.object({
   text: z.string().min(1, "Option text cannot be empty."),
   nextStepId: z.string().min(1, "Must select a next step."),
@@ -29,7 +31,7 @@ const formSchema = z.object({
   // Solution fields
   solutionTitle: z.string().optional(),
   solutionDescription: z.string().optional(),
-  guideId: z.string().optional().nullable(), // Allow empty string or null
+  guideId: z.string().optional().nullable(), // Allow empty string, null, or our special NONE_GUIDE_VALUE
   professionalHelp: z.boolean().optional().default(false),
 }).superRefine((data, ctx) => {
   if (data.stepType === 'question') {
@@ -88,7 +90,7 @@ export default function TroubleshootStepForm({
       options: initialStep.type === 'question' ? (initialStep as TroubleshootQuestion).options : [],
       solutionTitle: initialStep.type === 'solution' ? (initialStep as TroubleshootSolution).title : '',
       solutionDescription: initialStep.type === 'solution' ? (initialStep as TroubleshootSolution).description : '',
-      guideId: initialStep.type === 'solution' ? (initialStep as TroubleshootSolution).guideId || null : null,
+      guideId: initialStep.type === 'solution' ? ((initialStep as TroubleshootSolution).guideId || null) : null, // null for placeholder
       professionalHelp: initialStep.type === 'solution' ? !!(initialStep as TroubleshootSolution).professionalHelp : false,
     } : {
       id: '',
@@ -97,7 +99,7 @@ export default function TroubleshootStepForm({
       options: [{ text: '', nextStepId: '' }],
       solutionTitle: '',
       solutionDescription: '',
-      guideId: null,
+      guideId: null, // null for placeholder
       professionalHelp: false,
     },
   });
@@ -134,12 +136,15 @@ export default function TroubleshootStepForm({
         options: values.options!,
       };
     } else { // solution
+      const finalGuideId = (values.guideId === NONE_GUIDE_VALUE || !values.guideId) 
+        ? undefined 
+        : values.guideId;
       submittedStep = {
         id: values.id,
         type: 'solution',
         title: values.solutionTitle!,
         description: values.solutionDescription!,
-        guideId: values.guideId || undefined, // Ensure empty string becomes undefined
+        guideId: finalGuideId,
         professionalHelp: values.professionalHelp,
       };
     }
@@ -278,10 +283,12 @@ export default function TroubleshootStepForm({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Related Instruction Guide (Optional)</FormLabel>
+                      {/* value prop for Select uses field.value (which can be null) or empty string for placeholder */}
                       <Select onValueChange={field.onChange} value={field.value || ""}>
                         <FormControl><SelectTrigger><SelectValue placeholder="Select a guide" /></SelectTrigger></FormControl>
                         <SelectContent>
-                          <SelectItem value="">None</SelectItem>
+                          {/* Use a non-empty value for the "None" item */}
+                          <SelectItem value={NONE_GUIDE_VALUE}>None</SelectItem>
                           {allGuides.map(guide => <SelectItem key={guide.id} value={guide.id}>{guide.title} ({guide.machineBrand} {guide.machineModel})</SelectItem>)}
                         </SelectContent>
                       </Select>
@@ -322,3 +329,4 @@ export default function TroubleshootStepForm({
     </Form>
   );
 }
+
