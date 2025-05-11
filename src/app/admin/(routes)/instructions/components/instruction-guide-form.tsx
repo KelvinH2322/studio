@@ -236,7 +236,7 @@ export default function InstructionGuideForm({ guide, onSubmit, onCancel }: Inst
                   </FormItem>
                 )}
               />
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <FormField
                     control={form.control}
                     name={`steps.${index}.image`}
